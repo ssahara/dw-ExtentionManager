@@ -80,6 +80,15 @@ class helper_plugin_extension_extension extends DokuWiki_Plugin {
     }
 
     /**
+     * If remote information of extensions available
+     *
+     * @return bool
+     */
+    public function isRemoteInfoAvailable() {
+        return ( empty($this->remoteInfo) ? false : true );
+    }
+
+    /**
      * If the extension is installed locally
      *
      * @return bool If the extension is installed locally
