@@ -357,29 +357,13 @@ class helper_plugin_extension_list extends DokuWiki_Plugin {
      */
     function make_info(helper_plugin_extension_extension $extension) {
         $default = $this->getLang('unknown');
+
+       // ===== local information =================
         $return = '<dl class="details">';
-
-        $return .= '<dt>'.$this->getLang('status').'</dt>';
-        $return .= '<dd>'.$this->make_status($extension).'</dd>';
-
-        if ($extension->getDonationURL()) {
-            $return .= '<dt>'.$this->getLang('donate').'</dt>';
-            $return .= '<dd>';
-            $return .= '<a href="'.$extension->getDonationURL().'" class="donate">'.$this->getLang('donate_action').'</a>';
-            $return .= '</dd>';
-        }
-
-        if (!$extension->isBundled()) {
-            $return .= '<dt>'.$this->getLang('downloadurl').'</dt>';
-            $return .= '<dd><bdi>';
-            $return .= ($extension->getDownloadURL() ? $this->shortlink($extension->getDownloadURL()) : $default);
-            $return .= '</bdi></dd>';
-
-            $return .= '<dt>'.$this->getLang('repository').'</dt>';
-            $return .= '<dd><bdi>';
-            $return .= ($extension->getSourcerepoURL() ? $this->shortlink($extension->getSourcerepoURL()) : $default);
-            $return .= '</bdi></dd>';
-        }
+        $return .= '<dt>';
+        $return .= ($extension->isTemplate())? $this->getLang('status_template') : $this->getLang('status_plugin');
+        $return .= ' '.$this->getLang('status').'</dt>';
+        $return .= '<dd>'.$this->make_status($extension).' (id='.hsc($extension->getID()).')</dd>';
 
         if ($extension->isInstalled()) {
             if ($extension->getInstalledVersion()) {
@@ -391,50 +375,85 @@ class helper_plugin_extension_list extends DokuWiki_Plugin {
             if (!$extension->isBundled()) {
                 $return .= '<dt>'.$this->getLang('install_date').'</dt>';
                 $return .= '<dd>';
-                $return .= ($extension->getUpdateDate() ? hsc($extension->getUpdateDate()) : $this->getLang('unknown'));
+                if ($extension->getUpdateDate() ) {
+                    $return.= hsc(date('Y-m-d H:i:s (P)  ', strtotime($extension->getUpdateDate()) ));
+                } else{ 
+                    $return.= $this->getLang('unknown');
+                } 
+                $return .= '</dd>';
+                $return .= '<dt>'.$this->getLang('downloadurl').'</dt>';
+                $return .= '<dd><bdi>';
+                $return .= ($extension->getLastDownloadURL() ? $this->shortlink($extension->getLastDownloadURL()) : $default);
+                $return .= '</bdi></dd>';
+            }
+        }
+        $return .= '</dl>'.DOKU_LF;
+
+        // ===== remote information =================
+        $return .= '<dl class="details" style="background-color:#eee;">';
+
+        if (!$extension->isRemoteInfoAvailable()) {
+            $return .= '<dt>Remote info :</dt>'.'<dd>not available</dd>';
+        } else {
+            // Repository: Non-Bundled only
+            if (!$extension->isBundled()) {
+                $return .= '<dt>'.$this->getLang('repository').'</dt>';
+                $return .= '<dd><bdi>';
+                $return .= ($extension->getSourcerepoURL() ? $this->shortlink($extension->getSourcerepoURL()) : $default);
+                $return .= '</bdi></dd>';
+                $return .= '<dt>'.$this->getLang('available_version').'</dt>';
+                $return .= '<dd>';
+                $return .= hsc($extension->getLastUpdate());
+                $return .= '</dd>';
+                $return .= '<dt>'.$this->getLang('downloadurl').'</dt>';
+                $return .= '<dd><bdi>';
+                $return .= ($extension->getDownloadURL() ? $this->shortlink($extension->getDownloadURL()) : $default);
+                $return .= '</bdi></dd>';
+            }
+
+            if ($extension->getDonationURL()) {
+                $return .= '<dt>'.$this->getLang('donate').'</dt>';
+                $return .= '<dd>';
+                $return .= '<a href="'.$extension->getDonationURL().'" class="donate">'.$this->getLang('donate_action').'</a>';
                 $return .= '</dd>';
             }
-        }
-        if (!$extension->isInstalled() || $extension->updateAvailable()) {
-            $return .= '<dt>'.$this->getLang('available_version').'</dt>';
-            $return .= '<dd>';
-            $return .= ($extension->getLastUpdate() ? hsc($extension->getLastUpdate()) : $this->getLang('unknown'));
-            $return .= '</dd>';
-        }
 
-        $return .= '<dt>'.$this->getLang('provides').'</dt>';
-        $return .= '<dd><bdi>';
-        $return .= ($extension->getTypes() ? hsc(implode(', ', $extension->getTypes())) : $default);
-        $return .= '</bdi></dd>';
+            // Repository: Non-Bundled and Bundled extentions
+            $return .= '<dt>'.$this->getLang('provides').'</dt>';
+            $return .= '<dd><bdi>';
+            $return .= ($extension->getTypes() ? hsc(implode(', ', $extension->getTypes())) : $default);
+            $return .= '</bdi></dd>';
 
-        if(!$extension->isBundled() && $extension->getCompatibleVersions()) {
-            $return .= '<dt>'.$this->getLang('compatible').'</dt>';
-            $return .= '<dd>';
-            foreach ($extension->getCompatibleVersions() as $date => $version) {
-                $return .= '<bdi>'.$version['label'].' ('.$date.')</bdi>, ';
+            if(!$extension->isBundled() && $extension->getCompatibleVersions()) {
+                $return .= '<dt>'.$this->getLang('compatible').'</dt>';
+                $return .= '<dd>';
+                foreach ($extension->getCompatibleVersions() as $date => $version) {
+                    $return .= '<bdi>'.$version['label'].' ('.$date.')</bdi>, ';
+                }
+                $return = rtrim($return, ', ');
+                $return .= '</dd>';
             }
-            $return = rtrim($return, ', ');
-            $return .= '</dd>';
-        }
-        if($extension->getDependencies()) {
-            $return .= '<dt>'.$this->getLang('depends').'</dt>';
-            $return .= '<dd>';
-            $return .= $this->make_linklist($extension->getDependencies());
-            $return .= '</dd>';
-        }
 
-        if($extension->getSimilarExtensions()) {
-            $return .= '<dt>'.$this->getLang('similar').'</dt>';
-            $return .= '<dd>';
-            $return .= $this->make_linklist($extension->getSimilarExtensions());
-            $return .= '</dd>';
-        }
+            if($extension->getDependencies()) {
+                $return .= '<dt>'.$this->getLang('depends').'</dt>';
+                $return .= '<dd>';
+                $return .= $this->make_linklist($extension->getDependencies());
+                $return .= '</dd>';
+            }
 
-        if($extension->getConflicts()) {
-            $return .= '<dt>'.$this->getLang('conflicts').'</dt>';
-            $return .= '<dd>';
-            $return .= $this->make_linklist($extension->getConflicts());
-            $return .= '</dd>';
+            if($extension->getSimilarExtensions()) {
+                $return .= '<dt>'.$this->getLang('similar').'</dt>';
+                $return .= '<dd>';
+                $return .= $this->make_linklist($extension->getSimilarExtensions());
+                $return .= '</dd>';
+            }
+
+            if($extension->getConflicts()) {
+                $return .= '<dt>'.$this->getLang('conflicts').'</dt>';
+                $return .= '<dd>';
+                $return .= $this->make_linklist($extension->getConflicts());
+                $return .= '</dd>';
+            }
         }
         $return .= '</dl>'.DOKU_LF;
         return $return;
