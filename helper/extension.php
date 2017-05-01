@@ -624,8 +624,12 @@ class helper_plugin_extension_extension extends DokuWiki_Plugin {
      * @throws \Exception when something goes wrong
      * @return array The list of installed extensions
      */
-    public function installOrUpdate() {
-        $url       = $this->getDownloadURL();
+    public function installOrUpdate($action) {
+        if ($action == 'reinstall') {
+            $url   = $this->getLastDownloadURL();
+        } else {
+            $url   = $this->getDownloadURL();
+        }
         $path      = $this->download($url);
         $installed = $this->installArchive($path, $this->isInstalled(), $this->getBase());
         $this->updateManagerData($url, $installed);

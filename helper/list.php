@@ -470,12 +470,11 @@ class helper_plugin_extension_list extends DokuWiki_Plugin {
                 if (!$extension->isProtected()) {
                     $return .= $this->make_action('uninstall', $extension);
                 }
-                if ($extension->getDownloadURL()) {
-                    if ($extension->updateAvailable()) {
-                        $return .= $this->make_action('update', $extension);
-                    } else {
-                        $return .= $this->make_action('reinstall', $extension);
-                    }
+                if ($extension->getDownloadURL() && $extension->updateAvailable()) {
+                    $return .= $this->make_action('update', $extension);
+                }
+                if ($extension->getLastDownloadURL()) {
+                    $return .= $this->make_action('reinstall', $extension);
                 }
             }else{
                 $errors .= '<p class="permerror">'.$this->getLang($canmod).'</p>';
@@ -527,8 +526,11 @@ class helper_plugin_extension_list extends DokuWiki_Plugin {
 
         switch ($action) {
             case 'install':
-            case 'reinstall':
+            case 'update':
                 $title = 'title="'.hsc($extension->getDownloadURL()).'"';
+                break;
+            case 'reinstall':
+                $title = 'title="'.hsc($extension->getLastDownloadURL()).'"';
                 break;
         }
 
